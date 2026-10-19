@@ -1,7 +1,14 @@
 package com.imvh.sigdeh.excepciones;
 
-public class SigdehException extends RuntimeException {
-    public SigdehException(String message) {
-        super(message);
+// Excepción base de SIGDEH: permite capturar cualquier error del sistema con un solo catch.
+public class SigdehException extends Exception {
+
+    private static final long serialVersionUID = 1L;
+
+    public SigdehException(String mensaje) {
+
+        super(mensaje);
+
     }
+
 }
