@@ -1,5 +1,6 @@
 package com.imvh.sigdeh.vista;
 
+import com.imvh.sigdeh.excepciones.PersistenciaException;
 import com.imvh.sigdeh.excepciones.SigdehException;
 import com.imvh.sigdeh.gestor.GestorDePriorizacion;
 import com.imvh.sigdeh.gestor.GestorDeSolicitudes;
@@ -10,7 +11,9 @@ import com.imvh.sigdeh.modelo.Operatoria;
 import com.imvh.sigdeh.modelo.Posicion;
 import com.imvh.sigdeh.modelo.Solicitud;
 import com.imvh.sigdeh.modelo.Universo;
+import com.imvh.sigdeh.util.ParametrosNormativos;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -19,6 +22,19 @@ import java.util.List;
 public class MenuPrincipal {
 
     private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    // Opciones del menú: arreglo de tamaño fijo, la posición + 1 es el número que se elige.
+    private static final String[] OPCIONES = {
+            "Registrar solicitud",
+            "Actualizar solicitud",
+            "Consultar estado de una solicitud",
+            "Buscar solicitud por DNI",
+            "Listar solicitudes registradas",
+            "Emitir listado de prioridad",
+            "Ver historial de listados emitidos",
+            "Dar de baja una solicitud",
+            "Eliminar una solicitud dada de baja"
+    };
 
     private final GestorDeSolicitudes gestorSolicitudes;
     private final GestorDePriorizacion gestorPriorizacion;
@@ -61,12 +77,24 @@ public class MenuPrincipal {
                     case 6:
                         emitirListado();
                         break;
+                    case 7:
+                        verHistorial();
+                        break;
+                    case 8:
+                        darDeBaja();
+                        break;
+                    case 9:
+                        eliminarSolicitud();
+                        break;
                     case 0:
                         System.out.println("Cerrando SIGDEH. ¡Hasta luego!");
                         break;
                     default:
-                        System.out.println("Opción inválida. Elija un número entre 0 y 6.");
+                        System.out.println("Opción inválida. Elija un número entre 0 y " + OPCIONES.length + ".");
                 }
+            } catch (PersistenciaException e) {
+                // Problema con MySQL: se informa y el sistema sigue funcionando
+                System.out.println("ERROR DE BASE DE DATOS: " + e.getMessage());
             } catch (SigdehException e) {
                 // Cualquier error de negocio (residencia, DNI duplicado, no encontrado...) llega hasta acá
                 System.out.println("ERROR: " + e.getMessage());
@@ -83,12 +111,9 @@ public class MenuPrincipal {
         System.out.println("  SIGDEH - Gestión y Priorización de la Demanda");
         System.out.println("            Habitacional (IMVH)");
         System.out.println("=================================================");
-        System.out.println(" 1. Registrar solicitud");
-        System.out.println(" 2. Actualizar solicitud");
-        System.out.println(" 3. Consultar estado de una solicitud");
-        System.out.println(" 4. Buscar solicitud por DNI");
-        System.out.println(" 5. Listar solicitudes registradas");
-        System.out.println(" 6. Emitir listado de prioridad");
+        for (int i = 0; i < OPCIONES.length; i++) {
+            System.out.println(" " + (i + 1) + ". " + OPCIONES[i]);
+        }
         System.out.println(" 0. Salir");
         System.out.println("-------------------------------------------------");
 
@@ -100,7 +125,8 @@ public class MenuPrincipal {
         System.out.println("--- Nueva solicitud ---");
         System.out.println("Datos del titular:");
         LocalDate fechaResidencia = consola.leerFecha("Fecha de inicio de residencia en la localidad");
-        String situacion = consola.leerTexto("Situación habitacional actual (ej: Alquiler, Vivienda precaria, Cedida): ");
+        String situacion = consola.leerOpcion("Situación habitacional actual:",
+                ParametrosNormativos.SITUACIONES_HABITACIONALES);
         double ingreso = consola.leerDecimal("Ingreso neto mensual del grupo familiar: ");
 
         GrupoFamiliar grupo = new GrupoFamiliar(situacion, ingreso, fechaResidencia);
@@ -138,7 +164,8 @@ public class MenuPrincipal {
         System.out.println("Situación habitacional actual: " + grupo.getSituacionHabitacional());
         System.out.printf("Ingreso neto actual: %.2f%n", grupo.getIngresoNeto());
 
-        String nuevaSituacion = consola.leerTexto("Nueva situación habitacional: ");
+        String nuevaSituacion = consola.leerOpcion("Nueva situación habitacional:",
+                ParametrosNormativos.SITUACIONES_HABITACIONALES);
         double nuevoIngreso = consola.leerDecimal("Nuevo ingreso neto mensual: ");
         gestorSolicitudes.actualizarSolicitud(numero, nuevaSituacion, nuevoIngreso);
         System.out.println("Solicitud actualizada. Fecha de última actualización: "
@@ -155,7 +182,7 @@ public class MenuPrincipal {
     }
 
     // Busca una solicitud por DNI y muestra su detalle.
-    private void buscarPorDni() {
+    private void buscarPorDni() throws SigdehException {
 
         String dni = consola.leerTexto("DNI a buscar: ");
         Solicitud solicitud = gestorSolicitudes.buscarPorDni(dni);
@@ -196,7 +223,7 @@ public class MenuPrincipal {
     }
 
     // Imprime una tabla con todas las solicitudes y marca las desactualizadas.
-    private void listarSolicitudes() {
+    private void listarSolicitudes() throws SigdehException {
 
         List<Solicitud> solicitudes = gestorSolicitudes.listarSolicitudes();
         if (solicitudes.isEmpty()) {
@@ -233,6 +260,13 @@ public class MenuPrincipal {
 
         ListadoPrioridad listado = gestorPriorizacion.emitirListado(id);
         mostrarListado(listado);
+        System.out.println();
+        System.out.println("Listado guardado en la base de datos con el N° " + listado.getId() + ".");
+
+        if (consola.leerSiNo("¿Desea exportarlo a un archivo CSV?")) {
+            Path archivo = gestorPriorizacion.exportarListado(listado);
+            System.out.println("Archivo generado: " + archivo);
+        }
 
     }
 
@@ -263,6 +297,47 @@ public class MenuPrincipal {
                         p.getPuntaje(),
                         dentroDeCupo);
             }
+        }
+
+    }
+
+    // Baja de una solicitud: la conserva en la base, pero deja de participar de los listados.
+    private void darDeBaja() throws SigdehException {
+
+        int numero = consola.leerEntero("Número de solicitud a dar de baja: ");
+        mostrarDetalle(gestorSolicitudes.consultarEstado(numero));
+        if (consola.leerSiNo("¿Confirma la baja?")) {
+            gestorSolicitudes.darDeBaja(numero);
+            System.out.println("Solicitud N° " + numero + " dada de baja.");
+        }
+
+    }
+
+    // Borrado definitivo de una solicitud dada de baja (DELETE en la base).
+    private void eliminarSolicitud() throws SigdehException {
+
+        int numero = consola.leerEntero("Número de solicitud a eliminar: ");
+        mostrarDetalle(gestorSolicitudes.validarEliminacion(numero));     // falla si no está de baja
+        System.out.println("ATENCIÓN: se borrarán la solicitud, su grupo familiar y sus posiciones en listados.");
+        if (consola.leerSiNo("¿Confirma la eliminación definitiva?")) {
+            gestorSolicitudes.eliminarSolicitud(numero);
+            System.out.println("Solicitud N° " + numero + " eliminada de la base de datos.");
+        }
+
+    }
+
+    // Historial de listados emitidos (consulta a la base con JOIN y COUNT).
+    private void verHistorial() throws SigdehException {
+
+        List<String[]> filas = gestorPriorizacion.historialDeListados();
+        if (filas.isEmpty()) {
+            System.out.println("Todavía no se emitió ningún listado.");
+            return;
+        }
+        System.out.printf("%-8s %-18s %-25s %-9s %-10s%n", "Listado", "Emitido", "Operatoria", "Esquema", "Posiciones");
+        for (String[] columnas : filas) {
+            System.out.printf("%-8s %-18s %-25s %-9s %-10s%n",
+                    columnas[0], columnas[1], columnas[2], "v" + columnas[3], columnas[4]);
         }
 
     }

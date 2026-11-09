@@ -18,6 +18,10 @@ public final class ParametrosNormativos {
     // Tolerancia al verificar que los pesos de un esquema sumen 1,00.
     public static final double TOLERANCIA_SUMA_PESOS = 0.001;
 
+    // Situaciones habitacionales que se pueden declarar. Es un arreglo porque la lista es fija
+    // y se usa para armar el menú de opciones; CriterioVulnerabilidad asigna un puntaje a cada una.
+    public static final String[] SITUACIONES_HABITACIONALES = {"Vivienda precaria", "Alquiler", "Cedida", "Otra"};
+
     // Constructor privado: es una clase de constantes, no se instancia.
     private ParametrosNormativos() {
     }

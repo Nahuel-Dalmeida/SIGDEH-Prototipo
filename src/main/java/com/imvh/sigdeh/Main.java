@@ -5,43 +5,49 @@ import com.imvh.sigdeh.dao.GrupoFamiliarDAO;
 import com.imvh.sigdeh.dao.ListadoPrioridadDAO;
 import com.imvh.sigdeh.dao.OperatoriaDAO;
 import com.imvh.sigdeh.dao.SolicitudDAO;
-import com.imvh.sigdeh.dao.memoria.EsquemaPriorizacionDAOMemoria;
-import com.imvh.sigdeh.dao.memoria.GrupoFamiliarDAOMemoria;
-import com.imvh.sigdeh.dao.memoria.ListadoPrioridadDAOMemoria;
-import com.imvh.sigdeh.dao.memoria.OperatoriaDAOMemoria;
-import com.imvh.sigdeh.dao.memoria.SolicitudDAOMemoria;
-import com.imvh.sigdeh.datos.DatosDePrueba;
+import com.imvh.sigdeh.dao.mysql.ConexionBD;
+import com.imvh.sigdeh.dao.mysql.EsquemaPriorizacionDAOMySQL;
+import com.imvh.sigdeh.dao.mysql.GrupoFamiliarDAOMySQL;
+import com.imvh.sigdeh.dao.mysql.ListadoPrioridadDAOMySQL;
+import com.imvh.sigdeh.dao.mysql.OperatoriaDAOMySQL;
+import com.imvh.sigdeh.dao.mysql.SolicitudDAOMySQL;
+import com.imvh.sigdeh.excepciones.PersistenciaException;
 import com.imvh.sigdeh.gestor.GestorDePriorizacion;
 import com.imvh.sigdeh.gestor.GestorDeSolicitudes;
 import com.imvh.sigdeh.vista.Consola;
 import com.imvh.sigdeh.vista.MenuPrincipal;
 
-// Punto de entrada: arma DAO, gestores y vista, y lanza el menú.
+// Punto de entrada: verifica la conexión, arma DAO, gestores y vista, y lanza el menú.
 public class Main {
 
     public static void main(String[] args) {
 
-        // 1. Acceso a datos (hoy en memoria)
-        SolicitudDAO solicitudDAO = new SolicitudDAOMemoria();
-        GrupoFamiliarDAO grupoFamiliarDAO = new GrupoFamiliarDAOMemoria();
-        OperatoriaDAO operatoriaDAO = new OperatoriaDAOMemoria();
-        EsquemaPriorizacionDAO esquemaDAO = new EsquemaPriorizacionDAOMemoria();
-        ListadoPrioridadDAO listadoDAO = new ListadoPrioridadDAOMemoria();
-
-        // Carga datos de ejemplo para probar sin base de datos
-        DatosDePrueba.cargar(solicitudDAO, grupoFamiliarDAO, operatoriaDAO, esquemaDAO);
-
-        // 2. Lógica de negocio
-        GestorDeSolicitudes gestorSolicitudes = new GestorDeSolicitudes(solicitudDAO, grupoFamiliarDAO);
-        GestorDePriorizacion gestorPriorizacion =
-                new GestorDePriorizacion(operatoriaDAO, solicitudDAO, esquemaDAO, listadoDAO);
-
-        // 3. Presentación
         Consola consola = new Consola();
         try {
+            // 0. Se prueba la conexión antes de mostrar el menú: sin base de datos no se puede trabajar
+            ConexionBD.getInstancia().getConexion();
+            System.out.println("Conexión con la base de datos establecida.");
+
+            // 1. Acceso a datos: implementaciones MySQL detrás de las mismas interfaces del TP3
+            SolicitudDAO solicitudDAO = new SolicitudDAOMySQL();
+            GrupoFamiliarDAO grupoFamiliarDAO = new GrupoFamiliarDAOMySQL();
+            OperatoriaDAO operatoriaDAO = new OperatoriaDAOMySQL();
+            EsquemaPriorizacionDAO esquemaDAO = new EsquemaPriorizacionDAOMySQL();
+            ListadoPrioridadDAO listadoDAO = new ListadoPrioridadDAOMySQL();
+
+            // 2. Lógica de negocio
+            GestorDeSolicitudes gestorSolicitudes = new GestorDeSolicitudes(solicitudDAO, grupoFamiliarDAO);
+            GestorDePriorizacion gestorPriorizacion =
+                    new GestorDePriorizacion(operatoriaDAO, solicitudDAO, esquemaDAO, listadoDAO);
+
+            // 3. Presentación
             new MenuPrincipal(gestorSolicitudes, gestorPriorizacion, consola).iniciar();
+
+        } catch (PersistenciaException e) {
+            System.out.println("No se pudo iniciar SIGDEH. " + e.getMessage());
         } finally {
-            consola.cerrar();                        // se cierra la entrada aunque ocurra un error inesperado
+            ConexionBD.getInstancia().cerrar();   // se cierra la conexión aunque ocurra un error
+            consola.cerrar();
         }
 
     }

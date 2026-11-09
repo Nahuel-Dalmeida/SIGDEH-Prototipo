@@ -11,4 +11,11 @@ public class SigdehException extends Exception {
 
     }
 
+    // Conserva la excepción original (por ejemplo, la SQLException) como causa.
+    public SigdehException(String mensaje, Throwable causa) {
+
+        super(mensaje, causa);
+
+    }
+
 }

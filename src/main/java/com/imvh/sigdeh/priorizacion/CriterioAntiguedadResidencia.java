@@ -15,4 +15,9 @@ public class CriterioAntiguedadResidencia extends CriterioBase {
 
     }
 
+    @Override
+    public String getCodigo() {
+        return "ANTIGUEDAD_RESIDENCIA";
+    }
+
 }

@@ -86,6 +86,21 @@ public class Consola {
 
     }
 
+    // Muestra las opciones de un arreglo numeradas desde 1 y devuelve la elegida.
+    public String leerOpcion(String titulo, String[] opciones) {
+        System.out.println(titulo);
+        for (int i = 0; i < opciones.length; i++) {
+            System.out.println("  " + (i + 1) + ". " + opciones[i]);
+        }
+        while (true) {
+            int elegida = leerEntero("  Opción: ");
+            if (elegida >= 1 && elegida <= opciones.length) {
+                return opciones[elegida - 1];
+            }
+            System.out.println("  Elija un número entre 1 y " + opciones.length + ".");
+        }
+    }
+
     // Cierra la entrada estándar.
     public void cerrar() {
 

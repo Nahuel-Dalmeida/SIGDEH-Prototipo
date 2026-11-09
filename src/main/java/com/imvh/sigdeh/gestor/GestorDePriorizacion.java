@@ -4,8 +4,10 @@ import com.imvh.sigdeh.dao.EsquemaPriorizacionDAO;
 import com.imvh.sigdeh.dao.ListadoPrioridadDAO;
 import com.imvh.sigdeh.dao.OperatoriaDAO;
 import com.imvh.sigdeh.dao.SolicitudDAO;
+import com.imvh.sigdeh.excepciones.ArchivoException;
 import com.imvh.sigdeh.excepciones.DatosInvalidosException;
 import com.imvh.sigdeh.excepciones.EntidadNoEncontradaException;
+import com.imvh.sigdeh.excepciones.PersistenciaException;
 import com.imvh.sigdeh.excepciones.SigdehException;
 import com.imvh.sigdeh.modelo.ListadoPrioridad;
 import com.imvh.sigdeh.modelo.Operatoria;
@@ -13,9 +15,11 @@ import com.imvh.sigdeh.modelo.Posicion;
 import com.imvh.sigdeh.modelo.Solicitud;
 import com.imvh.sigdeh.modelo.Universo;
 import com.imvh.sigdeh.priorizacion.EsquemaPriorizacion;
+import com.imvh.sigdeh.util.ExportadorCSV;
 import com.imvh.sigdeh.util.Ordenador;
 import com.imvh.sigdeh.util.ParametrosNormativos;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +42,7 @@ public class GestorDePriorizacion {
     }
 
     // Paso 2 del CU006: operatorias entre las que puede elegir el director.
-    public List<Operatoria> listarOperatoriasAbiertas() {
+    public List<Operatoria> listarOperatoriasAbiertas() throws PersistenciaException {
 
         return operatoriaDAO.buscarAbiertas();
 
@@ -103,8 +107,18 @@ public class GestorDePriorizacion {
 
     }
 
+    // Historial de listados ya emitidos, leído de la base (cada fila es un arreglo de columnas).
+    public List<String[]> historialDeListados() throws PersistenciaException {
+        return listadoDAO.buscarHistorial();
+    }
+
+    // Exporta el listado a un archivo CSV y devuelve la ruta donde quedó.
+    public Path exportarListado(ListadoPrioridad listado) throws ArchivoException {
+        return ExportadorCSV.exportar(listado);
+    }
+
     // Paso 4: solicitudes activas con la residencia mínima exigida para participar (RF08).
-    private List<Solicitud> solicitudesElegibles() {
+    private List<Solicitud> solicitudesElegibles() throws PersistenciaException {
 
         List<Solicitud> elegibles = new ArrayList<>();
         for (Solicitud solicitud : solicitudDAO.buscarTodas()) {

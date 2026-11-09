@@ -38,4 +38,9 @@ public class CriterioVulnerabilidad extends CriterioBase {
 
     }
 
+    @Override
+    public String getCodigo() {
+        return "VULNERABILIDAD";
+    }
+
 }

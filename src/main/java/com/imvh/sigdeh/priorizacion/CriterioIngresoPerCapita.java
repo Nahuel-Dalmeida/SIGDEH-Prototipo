@@ -16,4 +16,9 @@ public class CriterioIngresoPerCapita extends CriterioBase {
 
     }
 
+    @Override
+    public String getCodigo() {
+        return "INGRESO_PER_CAPITA";
+    }
+
 }

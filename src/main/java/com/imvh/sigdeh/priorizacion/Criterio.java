@@ -36,4 +36,10 @@ public class Criterio {
 
     }
 
+    public CriterioPriorizacion getEstrategia() {
+
+        return estrategia;
+
+    }
+
 }

@@ -5,8 +5,10 @@ import com.imvh.sigdeh.dao.SolicitudDAO;
 import com.imvh.sigdeh.excepciones.DatosInvalidosException;
 import com.imvh.sigdeh.excepciones.DniDuplicadoException;
 import com.imvh.sigdeh.excepciones.EntidadNoEncontradaException;
+import com.imvh.sigdeh.excepciones.PersistenciaException;
 import com.imvh.sigdeh.excepciones.ResidenciaInsuficienteException;
 import com.imvh.sigdeh.excepciones.SigdehException;
+import com.imvh.sigdeh.modelo.EstadoSolicitud;
 import com.imvh.sigdeh.modelo.GrupoFamiliar;
 import com.imvh.sigdeh.modelo.Integrante;
 import com.imvh.sigdeh.modelo.Solicitud;
@@ -49,9 +51,7 @@ public class GestorDeSolicitudes {
     public void actualizarSolicitud(int numero, String nuevaSituacion, double nuevoIngreso)
             throws SigdehException {
 
-        if (nuevaSituacion == null || nuevaSituacion.trim().isEmpty()) {
-            throw new DatosInvalidosException("La situación habitacional no puede estar vacía.");
-        }
+        validarSituacion(nuevaSituacion);
         if (nuevoIngreso < 0) {
             throw new DatosInvalidosException("El ingreso neto no puede ser negativo.");
         }
@@ -63,8 +63,35 @@ public class GestorDeSolicitudes {
 
     }
 
+    // Baja de una solicitud (cambio de estado dentro del CU002): deja de participar de los listados.
+    public void darDeBaja(int numero) throws SigdehException {
+        Solicitud solicitud = consultarEstado(numero);
+        if (solicitud.getEstado() == EstadoSolicitud.BAJA) {
+            throw new DatosInvalidosException("La solicitud N° " + numero + " ya está dada de baja.");
+        }
+        solicitud.setEstado(EstadoSolicitud.BAJA);
+        solicitud.actualizar();
+        solicitudDAO.guardar(solicitud);
+    }
+
+    // Verifica que la solicitud exista y esté dada de baja, como definí en el TP2.
+    // La vista la usa para avisar antes de pedir la confirmación.
+    public Solicitud validarEliminacion(int numero) throws SigdehException {
+        Solicitud solicitud = consultarEstado(numero);
+        if (solicitud.getEstado() != EstadoSolicitud.BAJA) {
+            throw new DatosInvalidosException("Solo se pueden eliminar solicitudes dadas de baja. "
+                    + "Primero use la opción de dar de baja.");
+        }
+        return solicitud;
+    }
+
+    // Borrado definitivo de la solicitud (vuelve a validar por si cambió entre la consulta y la confirmación).
+    public void eliminarSolicitud(int numero) throws SigdehException {
+        solicitudDAO.eliminar(validarEliminacion(numero));
+    }
+
     // CU003 Consultar estado de solicitud.
-    public Solicitud consultarEstado(int numero) throws EntidadNoEncontradaException {
+    public Solicitud consultarEstado(int numero) throws EntidadNoEncontradaException, PersistenciaException {
 
         Solicitud solicitud = solicitudDAO.buscarPorId(numero);
         if (solicitud == null) {
@@ -75,14 +102,14 @@ public class GestorDeSolicitudes {
     }
 
     // Busca la solicitud en la que figura un DNI. Devuelve null si no figura en ninguna.
-    public Solicitud buscarPorDni(String dni) {
+    public Solicitud buscarPorDni(String dni) throws PersistenciaException {
 
         return solicitudDAO.buscarPorDni(dni);
 
     }
 
     // Devuelve todas las solicitudes registradas.
-    public List<Solicitud> listarSolicitudes() {
+    public List<Solicitud> listarSolicitudes() throws PersistenciaException {
 
         return solicitudDAO.buscarTodas();
 
@@ -127,7 +154,7 @@ public class GestorDeSolicitudes {
     }
 
     // RF03: ningún DNI puede repetirse dentro del grupo ni figurar en otra solicitud.
-    private void validarDnisNoDuplicados(GrupoFamiliar grupo) throws DniDuplicadoException {
+    private void validarDnisNoDuplicados(GrupoFamiliar grupo) throws DniDuplicadoException, PersistenciaException {
 
         Set<String> dnisDelGrupo = new HashSet<>();
         for (Integrante integrante : grupo.getIntegrantes()) {
@@ -143,15 +170,25 @@ public class GestorDeSolicitudes {
 
     }
 
+    // La situación habitacional debe ser una de las previstas (recorre el arreglo de ParametrosNormativos).
+    private void validarSituacion(String situacion) throws DatosInvalidosException {
+        if (situacion != null) {
+            for (String valida : ParametrosNormativos.SITUACIONES_HABITACIONALES) {
+                if (valida.equalsIgnoreCase(situacion.trim())) {
+                    return;
+                }
+            }
+        }
+        throw new DatosInvalidosException("Situación habitacional inválida: " + situacion + ".");
+    }
+
     // Valida formato y rango de los datos del grupo familiar y de cada integrante.
     private void validarDatos(GrupoFamiliar grupo) throws DatosInvalidosException {
 
         if (grupo == null || grupo.cantidadIntegrantes() == 0) {
             throw new DatosInvalidosException("El grupo familiar debe tener al menos un integrante (el titular).");
         }
-        if (grupo.getSituacionHabitacional() == null || grupo.getSituacionHabitacional().trim().isEmpty()) {
-            throw new DatosInvalidosException("La situación habitacional no puede estar vacía.");
-        }
+        validarSituacion(grupo.getSituacionHabitacional());
         if (grupo.getIngresoNeto() < 0) {
             throw new DatosInvalidosException("El ingreso neto no puede ser negativo.");
         }
