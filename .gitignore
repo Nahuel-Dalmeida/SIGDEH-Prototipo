@@ -29,5 +29,5 @@ out/
 .idea/
 
 # Configuración local con la clave de MySQL y archivos generados por el sistema
-config/db.properties
+config/db.properties.ejemplo
 exportaciones/

@@ -11,10 +11,10 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 // Conexión única con MySQL (patrón Singleton).
-// Los datos de acceso se leen del archivo config/db.properties, así no quedan escritos en el código.
+// Los datos de acceso se leen del archivo config/db.properties.ejemplo, así no quedan escritos en el código.
 public final class ConexionBD {
 
-    private static final String ARCHIVO_CONFIGURACION = "config/db.properties";
+    private static final String ARCHIVO_CONFIGURACION = "config/db.properties.ejemplo";
     private static final int SEGUNDOS_VALIDACION = 2;
 
     private static ConexionBD instancia;
@@ -59,7 +59,7 @@ public final class ConexionBD {
             propiedades.load(entrada);
         } catch (IOException e) {
             throw new PersistenciaException("No se encontró el archivo " + ARCHIVO_CONFIGURACION
-                    + ". Copie config/db.properties con ese nombre y complete la clave.", e);
+                    + ". Copie config/db.properties.ejemplo con ese nombre y complete la clave.", e);
         }
         url = propiedades.getProperty("url", "jdbc:mysql://localhost:3306/sigdeh?useSSL=false&allowPublicKeyRetrieval=true");
         usuario = propiedades.getProperty("usuario", "root");
