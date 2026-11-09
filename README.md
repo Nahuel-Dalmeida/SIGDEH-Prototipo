@@ -28,7 +28,7 @@ Prototipo en Java del sistema para el Instituto Municipal de Vivienda y Hábitat
 
 ## Cómo ejecutar
 1. Crear la base ejecutando, en orden, `sql/01_esquema.sql` y `sql/02_datos.sql` (MySQL Workbench o consola).
-2. Renombrar `config/db.properties.ejemplo` como `config/db.properties.ejemplo` y completar usuario y clave de MySQL.
+2. Renombrar `config/db.properties.ejemplo` como `config/db.properties` y completar usuario y clave de MySQL.
 3. Abrir el proyecto en IntelliJ IDEA con un JDK 17 o superior y dejar que Maven descargue el driver.
 4. Ejecutar la clase `com.imvh.sigdeh.Main`.
 5. Si los acentos se ven mal en la consola, agregar `-Dfile.encoding=UTF-8` a las opciones de la VM.
